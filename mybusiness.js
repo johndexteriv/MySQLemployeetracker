@@ -2,23 +2,15 @@ const inquirer = require("inquirer");
 const mysql = require("mysql");
 const consoletable = require("console.table");
 const figlet = require("figlet");
-const { allowedNodeEnvironmentFlags } = require("process");
 
-// figlet("Employee Manager", function (err, data) {
-// 	if (err) {
-// 		console.log("Something went wrong...");
-// 		console.dir(err);
-// 		return;
-// 	}
-// 	console.log(data);
-// });
+// const addDepartment = require("./lib/addDepartment");
 
 var connection = mysql.createConnection({
 	host: "localhost",
 	port: 3306,
 	user: "root",
 	password: "root",
-	database: "myBusinessDB",
+	database: "mybusinessdb",
 });
 
 connection.connect(function (err) {
@@ -26,6 +18,15 @@ connection.connect(function (err) {
 	console.log("connected as id" + connection.threadId + "\n");
 	promptOptions();
 });
+
+// figlet("Employee Manager", function (err, data) {
+// 	if (err) {
+// 		console.log("Something went wrong...");
+// 		console.dir(err);
+// 		return;
+// 	}
+// 	console.log(data).then.promptOptions();
+// });
 
 const promptOptions = () => {
 	inquirer
@@ -82,3 +83,40 @@ const promptOptions = () => {
 			}
 		});
 };
+
+const addDepartment = () => {
+	inquirer
+		.prompt([
+			{
+				type: "input",
+				name: "name",
+				message: "What department would you like to add?",
+			},
+		])
+		.then((answer) => {
+			var query = "INSERT INTO department (name) VALUES (?)";
+			connection.query(query, [answer.name], function (err, res) {
+				if (err) throw err;
+				console.log(
+					"\n",
+					`You have added a ${JSON.stringify(
+						answer.name
+					)} department, please select what you would like to do next.`
+				);
+			});
+			promptOptions();
+		});
+};
+
+const viewAllDempartments = () => {
+	var query = "SELECT * FROM department";
+	connection.query(query, function (err, res) {
+		if (err) throw err;
+		console.table("\n", res);
+	});
+	promptOptions();
+};
+
+const addRole = () => {};
+
+// module.exports = connection;
