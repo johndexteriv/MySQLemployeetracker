@@ -89,22 +89,31 @@ const addDepartment = () => {
 	inquirer
 		.prompt([
 			{
+				type: "number",
+				name: "departmentid",
+				message: "What would you like your departments ID number to be?",
+			},
+			{
 				type: "input",
 				name: "name",
 				message: "What department would you like to add?",
 			},
 		])
 		.then((answer) => {
-			var query = "INSERT INTO department (name) VALUES (?)";
-			connection.query(query, [answer.name], function (err, res) {
-				if (err) throw err;
-				console.log(
-					"\n",
-					`You have added a ${JSON.stringify(
-						answer.name
-					)} department, please select what you would like to do next.`
-				);
-			});
+			var query = "INSERT INTO department (id, name) VALUES (?, ?)";
+			connection.query(
+				query,
+				[answer.departmentid, answer.name],
+				function (err, res) {
+					if (err) throw err;
+					console.log(
+						"\n",
+						`You have added a ${JSON.stringify(
+							answer.name
+						)} department, please select what you would like to do next.`
+					);
+				}
+			);
 			promptOptions();
 		});
 };
@@ -127,16 +136,6 @@ const addRole = () => {
 		inquirer
 			.prompt([
 				{
-					type: "input",
-					name: "title",
-					message: "What role would you like to add?",
-				},
-				{
-					type: "input",
-					name: "salary",
-					message: "What is the salary for this role?",
-				},
-				{
 					type: "list",
 					name: "department_id",
 					message: "What department is this role in?",
@@ -148,13 +147,33 @@ const addRole = () => {
 						return departmentsName;
 					},
 				},
+				{
+					type: "number",
+					name: "roleid",
+					message: "What would you like your roles ID number to be?",
+				},
+				{
+					type: "input",
+					name: "title",
+					message: "What role would you like to add?",
+				},
+				{
+					type: "input",
+					name: "salary",
+					message: "What is the salary for this role?",
+				},
 			])
 			.then((answer) => {
 				var query =
-					"INSERT INTO role (title, salary, department_id) VALUES (?,?,?)";
+					"INSERT INTO role (id, title, salary, department_id) VALUES (?,?,?,?)";
 				connection.query(
 					query,
-					[answer.title, answer.salary, departmentsIds[answer.department_id]],
+					[
+						answer.roleid,
+						answer.title,
+						answer.salary,
+						departmentsIds[answer.department_id],
+					],
 					function (err, res) {
 						if (err) throw err;
 						console.log(
@@ -171,7 +190,8 @@ const addRole = () => {
 };
 
 const viewAllRoles = () => {
-	var query = "SELECT * FROM role";
+	var query =
+		"SELECT role.id, role.title, role.salary, role.department_id, department.name FROM role LEFT JOIN department ON role.department_id=department.id";
 	connection.query(query, function (err, res) {
 		if (err) throw err;
 		console.table("\n", res);
@@ -180,11 +200,16 @@ const viewAllRoles = () => {
 };
 
 const addEmployee = () => {
-	var roleTitles = [];
+	let roleTitles = [];
 	var roleIds = {};
-	var managersArray = ["null", ...roleTitles];
-	var query = "SELECT id, title FROM role";
+	let managers = [];
+	let managersList = [];
+	var managersIDs = {};
+
+	var query =
+		"SELECT role.id, role.title, employee.employeeid, employee.first_name, employee.last_name, employee.role_id FROM role LEFT JOIN employee ON role.id=employee.role_id;";
 	connection.query(query, function (err, results) {
+		console.log(results);
 		if (err) throw err;
 		inquirer
 			.prompt([
@@ -204,8 +229,9 @@ const addEmployee = () => {
 					message: "What is your employees role id?",
 					choices: function () {
 						for (let i = 0; i < results.length; i++) {
-							roleTitles.push(results[i].title);
-							roleIds[results[i].title] = results[i].id;
+							var title = `${results[i].id} ${results[i].title}`;
+							roleTitles.push(title);
+							roleIds[title] = results[i].id;
 						}
 						return roleTitles;
 					},
@@ -213,12 +239,22 @@ const addEmployee = () => {
 				{
 					type: "list",
 					name: "managerid",
-					message: "What is the employees manager's ID?",
-					choices: roleTitles,
+					message: "Who is the employees manager?",
+					choices: function () {
+						for (let i = 0; i < results.length; i++) {
+							if (results[i].title == "Manager") {
+								var name = `${results[i].first_name} ${results[i].last_name}`;
+								managers.push(name);
+								managersIDs[name] = results[i].employeeid;
+							}
+						}
+						managersList = [...managers, "This Employee is a Manager"];
+						return managersList;
+					},
 				},
 			])
 			.then((answer) => {
-				if (answer.managerid === "null") {
+				if (answer.managerid === "This Employee is a Manager") {
 					var query =
 						"INSERT INTO employee (first_name, last_name, role_id) VALUES (?,?,?)";
 					connection.query(
@@ -241,7 +277,7 @@ const addEmployee = () => {
 							answer.firstname,
 							answer.lastname,
 							roleIds[answer.roleid],
-							answer.managerid,
+							managersIDs[answer.managerid],
 						],
 						function (err, res) {
 							if (err) throw err;
@@ -255,5 +291,64 @@ const addEmployee = () => {
 				promptOptions();
 			});
 	});
+};
+
+const updateEmployeeRole = () => {
+	let employeenames = [];
+	var employeeids = {};
+	let employeeroles = [];
+	// Just need to be able to update employee role!!!
+	var query =
+		"SELECT employee.employeeid, employee.first_name, employee.last_name, employee.role_id, role.title FROM employee, role WHERE employee.role_id = role.id;";
+	connection.query(query, function (err, results) {
+		if (err) throw err;
+		inquirer
+			.prompt([
+				{
+					type: "list",
+					name: "employeeid",
+					message: "Which employee would you like to update?",
+					choices: function () {
+						for (let i = 0; i < results.length; i++) {
+							var employee = `${results[i].first_name} ${results[i].last_name}`;
+							employeenames.push(employee);
+							employeeids[employee] = results[i].employeeid;
+						}
+						return employeenames;
+					},
+				},
+				{
+					type: "list",
+					name: "roleid",
+					message: "What would you like the employees new role to be?",
+					choices: results.map((result) => result.role_id),
+					// 	 function () {
+					// 		for (let i = 0; i < results.length; i++) {
+					// 			var roleIDs = results[i].role_id;
+					// 			if (roleIDs !== results[i].role_id) {
+					// 				employeeroles.push(roleIDs);
+					// 			}
+					// 		}
+					// 		return employeeroles;
+					// 	},
+				},
+			])
+			.then((answer) => {
+				var query = "UPDATE employee SET role_id = ? WHERE employeeid = ?";
+				connection.query(
+					query,
+					[answer.roleid, employeeids[answer.employeeid]],
+					function (err, res) {
+						if (err) throw err;
+						console.log("\n", `You have just updated the employees role`);
+					}
+				);
+				promptOptions();
+			});
+	});
+};
+
+const viewAllEmployees = () => {
+	var query = "";
 };
 // module.exports = connection;
