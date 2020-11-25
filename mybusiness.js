@@ -197,7 +197,6 @@ const addEmployee = () => {
 	var query =
 		"SELECT role.id, role.title, employee.employeeid, employee.first_name, employee.last_name, employee.role_id FROM role LEFT JOIN employee ON role.id=employee.role_id;";
 	connection.query(query, function (err, results) {
-		console.log(results);
 		if (err) throw err;
 		inquirer
 			.prompt([
