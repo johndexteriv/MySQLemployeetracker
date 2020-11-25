@@ -1,9 +1,6 @@
 const inquirer = require("inquirer");
 const mysql = require("mysql");
 const consoletable = require("console.table");
-const figlet = require("figlet");
-
-// const addDepartment = require("./lib/addDepartment");
 
 var connection = mysql.createConnection({
 	host: "localhost",
@@ -18,15 +15,6 @@ connection.connect(function (err) {
 	console.log("connected as id" + connection.threadId + "\n");
 	promptOptions();
 });
-
-// figlet("Employee Manager", function (err, data) {
-// 	if (err) {
-// 		console.log("Something went wrong...");
-// 		console.dir(err);
-// 		return;
-// 	}
-// 	console.log(data).then.promptOptions();
-// });
 
 const promptOptions = () => {
 	inquirer
@@ -296,8 +284,7 @@ const addEmployee = () => {
 const updateEmployeeRole = () => {
 	let employeenames = [];
 	var employeeids = {};
-	let employeeroles = [];
-	// Just need to be able to update employee role!!!
+
 	var query =
 		"SELECT employee.employeeid, employee.first_name, employee.last_name, employee.role_id, role.title FROM employee, role WHERE employee.role_id = role.id;";
 	connection.query(query, function (err, results) {
@@ -322,15 +309,6 @@ const updateEmployeeRole = () => {
 					name: "roleid",
 					message: "What would you like the employees new role to be?",
 					choices: results.map((result) => result.role_id),
-					// 	 function () {
-					// 		for (let i = 0; i < results.length; i++) {
-					// 			var roleIDs = results[i].role_id;
-					// 			if (roleIDs !== results[i].role_id) {
-					// 				employeeroles.push(roleIDs);
-					// 			}
-					// 		}
-					// 		return employeeroles;
-					// 	},
 				},
 			])
 			.then((answer) => {
@@ -349,6 +327,11 @@ const updateEmployeeRole = () => {
 };
 
 const viewAllEmployees = () => {
-	var query = "";
+	var query =
+		"SELECT employee.employeeid, employee.first_name, employee.last_name, role.title, role.salary FROM employee LEFT JOIN role on employee.role_id=role.id";
+	connection.query(query, (err, res) => {
+		if (err) throw err;
+		console.table("\n", res);
+		promptOptions();
+	});
 };
-// module.exports = connection;
